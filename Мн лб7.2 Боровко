@@ -1,0 +1,19 @@
+# Навчання обраної моделі на всьому датасеті
+full_trainset = dataset.build_full_trainset()
+selected_model.fit(full_trainset)
+
+# Вибір конкретного користувача для рекомендацій
+user_id = '85'  # Замінити на ID користувача
+
+# Отримання списку всіх фільмів
+all_items = full_trainset.all_items()
+all_movie_ids = [full_trainset.to_raw_iid(item_id) for item_id in all_items]
+
+# Прогнозування оцінок для всіх фільмів, які користувач ще не оцінив
+predictions = [selected_model.predict(user_id, movie_id) for movie_id in all_movie_ids]
+top_recommendations = sorted(predictions, key=lambda x: x.est, reverse=True)[:10]
+
+# Виведення топ-10 рекомендацій
+print(f"Топ-10 рекомендацій для користувача {user_id}:")
+for pred in top_recommendations:
+    print(f"Фільм ID: {pred.iid}, прогнозований рейтинг: {pred.est:.2f}")
