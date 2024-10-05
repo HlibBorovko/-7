@@ -1,0 +1,55 @@
+# Встановлення бібліотеки scikit-surprise
+!pip install scikit-surprise
+
+import surprise
+from surprise import Dataset, Reader, SVD, KNNWithMeans
+from surprise.model_selection import cross_validate, GridSearchCV, train_test_split
+
+# Завантаження датасету ml-100k
+dataset = Dataset.load_builtin('ml-100k')
+
+# Виведення перших 5 рядків датасету з поясненнями
+print("Перші 5 рядків датасету:")
+for row in dataset.raw_ratings[:5]:
+    user_id, movie_id, rating, timestamp = row
+    print(f"Користувач {user_id} оцінив фільм {movie_id} на {rating} балів (часова позначка: {timestamp})")
+
+# Розбиття на тренувальний і тестовий набори
+train_set, test_set = train_test_split(dataset, test_size=0.25)
+
+# Параметри для підбору для алгоритму SVD
+param_grid_svd = {
+    'n_factors': [60, 90],
+    'lr_all': [0.004, 0.008],
+    'reg_all': [0.03, 0.07]
+}
+
+# Налаштування крос-валідації з GridSearchCV
+svd_search = GridSearchCV(SVD, param_grid_svd, measures=['mae'], cv=3)
+svd_search.fit(dataset)
+
+# Параметри для алгоритму KNNWithMeans
+param_grid_knn = {
+    'k': [30, 50],
+    'min_k': [2, 4],
+    'sim_options': {
+        'name': ['pearson_baseline', 'msd'],
+        'user_based': [False, True]
+    }
+}
+
+knn_search = GridSearchCV(KNNWithMeans, param_grid_knn, measures=['mae'], cv=3)
+knn_search.fit(dataset)
+
+# Отримання найкращих моделей
+best_svd_model = svd_search.best_estimator['mae']
+best_knn_model = knn_search.best_estimator['mae']
+
+# Порівняння моделей за MAE
+print(f"Найкращий MAE для SVD: {svd_search.best_score['mae']}")
+print(f"Найкращий MAE для KNNWithMeans: {knn_search.best_score['mae']}")
+
+# Вибір найкращої моделі
+selected_model = best_svd_model if svd_search.best_score['mae'] < knn_search.best_score['mae'] else best_knn_model
+selected_model_name = "SVD" if selected_model == best_svd_model else "KNNWithMeans"
+print(f"Обрано найкращий алгоритм: {selected_model_name}")
